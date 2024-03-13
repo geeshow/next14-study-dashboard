@@ -22,3 +22,7 @@ export default function InvoiceStatus({ status }: { status: string }) {
     >
 )}
 ```
+
+### Vercel Postgres Example
+npm i @vercel/postgres
+
