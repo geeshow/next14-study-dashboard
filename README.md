@@ -26,3 +26,22 @@ export default function InvoiceStatus({ status }: { status: string }) {
 ### Vercel Postgres Example
 npm i @vercel/postgres
 
+### NextAuth 
+npm install next-auth@beta
+
+generate secret key
+> openssl rand -base64 32
+
+add .env
+> AUTH_SECRET=your-secret-key
+
+auth.config.ts
+```typescript
+import type { NextAuthConfig } from 'next-auth';
+ 
+export const authConfig = {
+  pages: {
+    signIn: '/login',
+  },
+};
+```
