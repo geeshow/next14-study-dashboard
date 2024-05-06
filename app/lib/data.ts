@@ -6,7 +6,7 @@ import {
   InvoicesTable,
   LatestInvoiceRaw,
   User,
-  Revenue,
+  Revenue, GenImagesTable, CategoriesTable,
 } from './definitions';
 import { formatCurrency } from './utils';
 import { unstable_noStore as noStore } from 'next/cache';
@@ -45,7 +45,8 @@ export async function fetchLatestInvoices() {
       JOIN customers ON invoices.customer_id = customers.id
       ORDER BY invoices.date DESC
       LIMIT 5`;
-
+    
+    console.log('fetchLatestInvoices')
     const latestInvoices = data.rows.map((invoice) => ({
       ...invoice,
       amount: formatCurrency(invoice.amount),
@@ -94,12 +95,12 @@ export async function fetchCardData() {
   }
 }
 
-const ITEMS_PER_PAGE = 6;
+const ITEMS_PER_PAGE = 20;
 export async function fetchFilteredInvoices(
   query: string,
   currentPage: number,
 ) {
-  noStore();
+  // noStore();
   const offset = (currentPage - 1) * ITEMS_PER_PAGE;
 
   try {
@@ -123,7 +124,8 @@ export async function fetchFilteredInvoices(
       ORDER BY invoices.date DESC
       LIMIT ${ITEMS_PER_PAGE} OFFSET ${offset}
     `;
-
+    
+    console.log('fetchFilteredInvoices')
     return invoices.rows;
   } catch (error) {
     console.error('Database Error:', error);
@@ -238,5 +240,82 @@ export async function getUser(email: string) {
   } catch (error) {
     console.error('Failed to fetch user:', error);
     throw new Error('Failed to fetch user.');
+  }
+}
+
+
+const GEN_ITEMS_PER_PAGE = 20;
+export async function fetchGenImagePages(query: string) {
+  noStore();
+  try {
+    const count = await sql`SELECT COUNT(*)
+    FROM genimages
+    JOIN customers ON genimages.userId = customers.id
+      WHERE
+        genimages.category ILIKE ${`%${query}%`} OR
+        genimages.purpose ILIKE ${`%${query}%`}
+  `;
+    
+    return Math.ceil(Number(count.rows[0].count) / GEN_ITEMS_PER_PAGE);
+  } catch (error) {
+    console.error('Database Error:', error);
+    throw new Error('Failed to fetch total number of invoices.');
+  }
+}
+
+export async function fetchFilteredGenImages(
+    query: string,
+    currentPage: number,
+) {
+  // noStore();
+  const offset = (currentPage - 1) * GEN_ITEMS_PER_PAGE;
+  
+  try {
+    const genImages = await sql<GenImagesTable>`
+      SELECT
+        genimages.id,
+        genimages.userId,
+        genimages.category,
+        genimages.purpose,
+        genimages.reqImageUrl,
+        genimages.genImageUrls,
+        genimages.status,
+        genimages.createdAt,
+        genimages.updatedAt,
+        customers.name,
+        customers.email,
+        customers.image_url
+      FROM genimages
+      JOIN customers ON genimages.userId = customers.id
+      WHERE
+        genimages.category ILIKE ${`%${query}%`} OR
+        genimages.purpose ILIKE ${`%${query}%`}
+      ORDER BY genimages.createdAt DESC
+      LIMIT ${ITEMS_PER_PAGE} OFFSET ${offset}
+    `;
+    
+    return genImages.rows;
+  } catch (error) {
+    console.error('Database Error:', error);
+    throw new Error('Failed to fetch invoices.');
+  }
+}
+
+export async function fetchCategory() {
+  try {
+    const data = await sql<CategoriesTable>`
+      SELECT
+        name,
+        prompt,
+        negative_prompt,
+        options
+      FROM categories
+      ORDER BY name ASC
+    `;
+    
+    return data.rows;
+  } catch (err) {
+    console.error('Database Error:', err);
+    throw new Error('Failed to fetchCategory.');
   }
 }

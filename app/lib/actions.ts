@@ -38,7 +38,7 @@ export async function createInvoice(prevState: State, formData: FormData) {
   const validatedFields = CreateInvoice.safeParse({
     customerId: formData.get('customerId'),
     amount: formData.get('amount'),
-    status: formData.get('status'),
+    status: formData.get('reqImage'),
   });
   
   // If form validation fails, return errors early. Otherwise, continue.

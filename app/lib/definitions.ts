@@ -86,3 +86,25 @@ export type InvoiceForm = {
   amount: number;
   status: 'pending' | 'paid';
 };
+
+export type GenImagesTable = {
+  id: string;
+  userId: string;
+  category: string;
+  purpose: string;
+  reqImageUrl: string;
+  genImageUrls: string;
+  status: 'request' | 'completed' | 'rejected';
+  createdAt: string;
+  updatedAt: string;
+  name: string;
+  email: string;
+  image_url: string;
+};
+
+export type CategoriesTable = {
+  name: string;
+  prompt: string;
+  negativePrompt: string;
+  options: string;
+};
