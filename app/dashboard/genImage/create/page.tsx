@@ -4,14 +4,14 @@ import {fetchCategory} from '@/app/lib/data';
 
 export default async function Page() {
   const categoriesTables = await fetchCategory();
-  
+
   return (
       <main>
         <Breadcrumbs
             breadcrumbs={[
               { label: 'Generate Image', href: '/dashboard/genImage' },
               {
-                label: 'Create',
+                label: 'Request',
                 href: '/dashboard/genImage/create',
                 active: true,
               },

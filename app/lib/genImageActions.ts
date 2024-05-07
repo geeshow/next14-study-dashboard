@@ -15,9 +15,8 @@ const FormSchema = z.object({
     invalid_type_error: 'Please Enter the purpose of the category.',
   }),
   reqImageUrl: z.string({
-    invalid_type_error: 'Please upload the required image.',
-  }),
-  status: z.string(),
+    invalid_type_error: 'Please Enter the reqImageUrl.',
+  })
 });
 
 
@@ -28,7 +27,7 @@ export type State = {
   errors?: {
     category?: string[];
     purpose?: string[];
-    reqImage?: string[];
+    reqImageUrl?: string[];
   };
   message?: string | null;
 };
@@ -39,10 +38,9 @@ export async function createGenImage(prevState: State, formData: FormData) {
     userId: formData.get('userId'),
     category: formData.get('category'),
     purpose: formData.get('purpose'),
-    reqImage: formData.get('reqImage'),
-    status: formData.get('status'),
+    reqImageUrl: formData.get('reqImageUrl'),
   });
-  
+
   // If form validation fails, return errors early. Otherwise, continue.
   if (!validatedFields.success) {
     return {
@@ -50,23 +48,23 @@ export async function createGenImage(prevState: State, formData: FormData) {
       message: 'Missing Fields. Failed to Create Invoice.',
     };
   }
-  
+
   // Prepare data for insertion into the database
-  const { userId, category, purpose, reqImageUrl, status } = validatedFields.data;
+  const { userId, category, purpose, reqImageUrl } = validatedFields.data;
   const date = new Date().toISOString().split('T')[0];
-  
   try {
     await sql`
-      INSERT INTO genimages (userId, category, purpose, reqImageUrl, status, createdAt, updatedAt)
-      VALUES (${userId}, ${category}, ${purpose}, ${reqImageUrl}, ${status}, ${date}, ${date})
+      INSERT INTO genimages (user_id, category, purpose, req_image_url, status, created_at, updated_at)
+      VALUES (${userId}, ${category}, ${purpose}, ${reqImageUrl}, 'REQUEST', ${date}, ${date})
     `;
   } catch (error) {
+    console.log('reqImageUrl', error)
     return {
-      message: 'Database Error: Failed to Create Invoice.',
+      message: 'Database Error: Failed to Generate Image.',
     };
   }
-  
-  revalidatePath('/dashboard/invoices');
-  redirect('/dashboard/invoices');
+
+  revalidatePath('/dashboard/genImage');
+  redirect('/dashboard/genImage');
 }
 

@@ -67,3 +67,14 @@ export const generatePagination = (currentPage: number, totalPages: number) => {
     totalPages,
   ];
 };
+
+export async function getBase64(file: File) {
+  const fileReader = new FileReader();
+  fileReader.readAsDataURL(file);
+
+  await new Promise((resolve) => {
+    fileReader.onload = resolve;
+  });
+
+  return fileReader.result as string
+}

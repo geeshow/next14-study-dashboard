@@ -89,14 +89,14 @@ export type InvoiceForm = {
 
 export type GenImagesTable = {
   id: string;
-  userId: string;
+  user_id: string;
   category: string;
   purpose: string;
-  reqImageUrl: string;
-  genImageUrls: string;
+  req_image_url: string;
+  gen_image_urls: string;
   status: 'request' | 'completed' | 'rejected';
-  createdAt: string;
-  updatedAt: string;
+  created_at: string;
+  updated_at: string;
   name: string;
   email: string;
   image_url: string;

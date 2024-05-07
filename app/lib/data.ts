@@ -45,7 +45,7 @@ export async function fetchLatestInvoices() {
       JOIN customers ON invoices.customer_id = customers.id
       ORDER BY invoices.date DESC
       LIMIT 5`;
-    
+
     console.log('fetchLatestInvoices')
     const latestInvoices = data.rows.map((invoice) => ({
       ...invoice,
@@ -124,7 +124,7 @@ export async function fetchFilteredInvoices(
       ORDER BY invoices.date DESC
       LIMIT ${ITEMS_PER_PAGE} OFFSET ${offset}
     `;
-    
+
     console.log('fetchFilteredInvoices')
     return invoices.rows;
   } catch (error) {
@@ -173,7 +173,7 @@ export async function fetchInvoiceById(id: string) {
       // Convert amount from cents to dollars
       amount: invoice.amount / 100,
     }));
-    
+
     console.log(invoice); // Invoice is an empty array []
     return invoice[0];
   } catch (error) {
@@ -250,12 +250,12 @@ export async function fetchGenImagePages(query: string) {
   try {
     const count = await sql`SELECT COUNT(*)
     FROM genimages
-    JOIN customers ON genimages.userId = customers.id
+    JOIN customers ON genimages.user_id = customers.id
       WHERE
         genimages.category ILIKE ${`%${query}%`} OR
         genimages.purpose ILIKE ${`%${query}%`}
   `;
-    
+
     return Math.ceil(Number(count.rows[0].count) / GEN_ITEMS_PER_PAGE);
   } catch (error) {
     console.error('Database Error:', error);
@@ -269,31 +269,31 @@ export async function fetchFilteredGenImages(
 ) {
   // noStore();
   const offset = (currentPage - 1) * GEN_ITEMS_PER_PAGE;
-  
+
   try {
     const genImages = await sql<GenImagesTable>`
       SELECT
         genimages.id,
-        genimages.userId,
+        genimages.user_id,
         genimages.category,
         genimages.purpose,
-        genimages.reqImageUrl,
-        genimages.genImageUrls,
+        genimages.req_image_url,
+        genimages.gen_image_urls,
         genimages.status,
-        genimages.createdAt,
-        genimages.updatedAt,
+        genimages.created_at,
+        genimages.updated_at,
         customers.name,
         customers.email,
         customers.image_url
       FROM genimages
-      JOIN customers ON genimages.userId = customers.id
+      JOIN customers ON genimages.user_id = customers.id
       WHERE
         genimages.category ILIKE ${`%${query}%`} OR
         genimages.purpose ILIKE ${`%${query}%`}
-      ORDER BY genimages.createdAt DESC
+      ORDER BY genimages.created_at DESC
       LIMIT ${ITEMS_PER_PAGE} OFFSET ${offset}
     `;
-    
+
     return genImages.rows;
   } catch (error) {
     console.error('Database Error:', error);
@@ -312,7 +312,7 @@ export async function fetchCategory() {
       FROM categories
       ORDER BY name ASC
     `;
-    
+
     return data.rows;
   } catch (err) {
     console.error('Database Error:', err);
