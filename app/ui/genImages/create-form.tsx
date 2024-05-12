@@ -10,37 +10,42 @@ import {FileUploader} from "react-drag-drop-files";
 import {useCallback, useEffect, useState} from "react";
 import {v4 as uuidv4} from "uuid";
 import Image from "next/image";
-import {getDefaultStableImg2ImgValue, stableImg2Img, StableImg2ImgRequest} from "@/app/lib/actions";
+import {
+  createPresignedUrlWithClient,
+} from "@/app/lib/actions";
 import {getBase64} from "@/app/lib/utils";
+import axios from "axios";
+import {stableTxt2Img, StableTxt2ImgRequest} from "@/app/lib/actions-stablediffusion";
 
-const fileTypes = ["JPEG", "PNG", "GIF"];
+const fileTypes = ["JPEG", "PNG", "GIF", "WEBP"];
 
 export default function Form({ categories }: { categories: CategoriesTable[] }) {
   const initialState = { message: null, errors: {} };
   const [state, dispatch] = useFormState(createGenImage, initialState);
   const [fileUrls, setFileUrls] = useState<string[]>([]);
-  const [base64Files, setBase64Files] = useState<string>('');
   const [reqData, setReqData] = useState({});
 
   const handleChange = useCallback(async (files: File[]) => {
-    // let urls = [];
+    let urls = [];
     for (let i = 0; i < files.length; i++) {
-      const key = uuidv4();
-      const file = files[i];
-      const base64 = await getBase64(file);
-      console.log('base64', base64)
-      setReqData({
-        ...reqData,
-        init_images: [base64]
-      });
-      setBase64Files(base64);
-      // const uploadUrl = `gen-image/${key}${file.name}`
-      // const url = await createPresignedUrlWithClient(uploadUrl)
-      // urls.push(`https://deca-upload-stage-public.s3.ap-northeast-2.amazonaws.com/${uploadUrl}`);
-      // await uploadFileToS3(file, url);
+      const uploadUrl = `gen-image/${uuidv4()}${files[i].name}`
+      const url = await createPresignedUrlWithClient(uploadUrl)
+      urls.push(`https://deca-upload-stage-public.s3.ap-northeast-2.amazonaws.com/${uploadUrl}`);
+      console.log('url', url)
+      await uploadFileToS3(files[i], url);
     }
-    // setFileUrls([...fileUrls, ...urls]);
-  }, [base64Files, reqData])
+    setFileUrls([...fileUrls, ...urls]);
+  }, [fileUrls])
+  
+  const uploadFileToS3 = async (file: File, url: string) => {
+    console.log('url', url, file)
+    const res = await axios.put(url, file, {
+      headers: {
+        'Content-Type': file.type,
+      },
+    })
+    console.log('res', res);
+  }
 
   const selectCategory = useCallback(async (e: any) => {
     const target = e.target as HTMLSelectElement;
@@ -55,12 +60,21 @@ export default function Form({ categories }: { categories: CategoriesTable[] }) 
       ...reqData,
       prompt: selectedCategory?.prompt || '',
       negative_prompt: selectedCategory?.negativePrompt || '',
-      init_images: [base64Files]
+      init_images: fileUrls
     }
     setReqData(req);
 
-    const result = await stableImg2Img(req);
-  }, [])
+    const options = {
+      baseImage: fileUrls[0],
+      controlnet: {
+        "module": "canny",
+        "model": "control_v11p_sd15_canny_fp16 [b18e0966]",
+        "threshold_a": 100,
+        "threshold_b": 200,
+      }
+    } as StableTxt2ImgRequest
+    const result = await stableTxt2Img(req, options);
+  }, [categories, fileUrls, reqData])
 
 
   return (
@@ -181,14 +195,16 @@ export default function Form({ categories }: { categories: CategoriesTable[] }) 
         <div className="relative mt-2 rounded-md">
           <div className="relative flex">
             {
-              base64Files && (
-                <img src={`${base64Files}`} alt="image" className="w-1/2"/>
-              )
+              fileUrls.map(url => {
+                return (
+                    <Image key={url} src={url} alt="image" className="w-1/4" width='240' height='240'/>
+                )
+              })
             }
           </div>
         </div>
       </div>
     </div>
   )
-    ;
+      ;
 }

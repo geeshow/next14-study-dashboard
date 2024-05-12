@@ -259,7 +259,7 @@ export async function fetchGenImagePages(query: string) {
     return Math.ceil(Number(count.rows[0].count) / GEN_ITEMS_PER_PAGE);
   } catch (error) {
     console.error('Database Error:', error);
-    throw new Error('Failed to fetch total number of invoices.');
+    throw new Error('Failed fetchGenImagePages.');
   }
 }
 
