@@ -1,6 +1,10 @@
 'use server';
 
 import axios from "axios";
+import {createPresignedUrlWithClient} from "@/app/lib/actions";
+import {v4 as uuidv4} from "uuid";
+import {CategoriesTable} from "@/app/lib/definitions";
+const fs = require('fs');
 
 export interface StableTxt2ImgRequest {
   prompt: string;
@@ -202,7 +206,8 @@ export interface StableTxt2ImgRequest {
   baseImage: string;
   controlnet: any;
 }
-export const stableTxt2Img = async (body: any, req: StableTxt2ImgRequest) => {
+export const stableTxt2Img = async (imageId: string, body: any, req: StableTxt2ImgRequest) => {
+  imageId = imageId + '_' + uuidv4();
   let request = getDefaultStableTxt2ImgValue();
   request = {
     ...request,
@@ -214,16 +219,29 @@ export const stableTxt2Img = async (body: any, req: StableTxt2ImgRequest) => {
     ...req.controlnet
   };
   
-  console.log('request', request);
-  const res = await axios.post('https://sd.devken.kr/sdapi/v1/txt2img', request, {
+  const response = await fetch('https://sd.devken.kr/sdapi/v1/txt2img', {
+    method: 'POST',
     headers: {
       'Content-Type': 'application/json',
     },
+    body: JSON.stringify(request),
   })
+  const res = await response.json();
   console.log('res', res);
-  return res;
   
+  // 예제: Base64 문자열과 파일 이름을 이용하여 File 객체 생성
+  const genImageFileName = `${imageId}_gen.png`;
+  await uploadBase64ToS3(res.images[0], genImageFileName, "image/png", `gen-image/${genImageFileName}`);
+  
+  const frameImageFileName = `${imageId}_${req.controlnet.module}.png`;
+  await uploadBase64ToS3(res.images[1], frameImageFileName, "image/png",`gen-image/${frameImageFileName}`);
+  
+  return {
+    imageUrl: `https://deca-upload-stage-public.s3.ap-northeast-2.amazonaws.com/gen-image/${genImageFileName}`,
+    frameImageUrl: `https://deca-upload-stage-public.s3.ap-northeast-2.amazonaws.com/gen-image/${frameImageFileName}`,
+  };
 }
+
 
 export const stableImg2Img = async (body: any) => {
   let request = getDefaultStableImg2ImgValue();
@@ -241,4 +259,67 @@ export const stableImg2Img = async (body: any) => {
   console.log('res', res);
   return res;
 
+}
+
+
+/**
+ * Base64 문자열을 JavaScript File 객체로 변환
+ * @param {string} base64String Base64 문자열
+ * @param {string} fileName 파일 이름
+ * @param {string} mimeType MIME 타입 (옵션)
+ * @returns {File} 변환된 File 객체
+ */
+function base64StringToFile(base64String: string, fileName: string): void {
+  // Base64를 디코딩하여 바이너리 데이터로 변환
+}
+
+const uploadBase64ToS3 = async (base64String: string, fileName: string, contentType: string, filePath: string) => {
+  console.log('url',filePath, fileName, contentType)
+
+  const buffer = Buffer.from(base64String, 'base64');
+  
+  const url = await createPresignedUrlWithClient(filePath)
+  const res = await axios.put(url, buffer, {
+    headers: {
+      'Content-Type': contentType
+    },
+    responseType: 'arraybuffer', // 응답을 ArrayBuffer로 받습니다.
+  });
+  
+  // const blob = new Blob([buffer], { type: contentType });
+  // let formData = new FormData();
+  // formData.append('file', blob, fileName);
+  // const res = await axios.put(url, formData, {
+  //   headers: {
+  //     'Content-Type': contentType,
+  //   },
+  // })
+  console.log('res', res.request);
+}
+
+
+export const sdRequest = async (uploadImageUrl: string, imageId: string, category: CategoriesTable) => {
+  let sdReq = category?.options as {};
+  sdReq = {
+    ...sdReq,
+    prompt: category?.prompt || '',
+    negative_prompt: category?.negativePrompt || '',
+    init_images: [uploadImageUrl]
+  }
+  
+  const sdOptions = {
+    baseImage: uploadImageUrl,
+    controlnet: {
+      "module": "canny",
+      "model": "control_v11p_sd15_canny_fp16 [b18e0966]",
+      "threshold_a": 100,
+      "threshold_b": 200,
+    }
+  } as StableTxt2ImgRequest
+  
+  const result = await stableTxt2Img(imageId, sdReq, sdOptions)
+  return {
+    imageUrl: result.imageUrl,
+    frameImageUrl: result.frameImageUrl,
+  }
 }

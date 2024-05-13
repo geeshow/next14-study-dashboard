@@ -17,11 +17,23 @@ export function CardSkeleton() {
     </div>
   );
 }
+export function ImageSkeleton() {
+  return (
+      <div className={`${shimmer} h-[240px] w-[240px] relative overflow-hidden rounded-xl bg-gray-100 p-2 shadow-sm`}>
+        <div className="flex p-2 h-full w-full">
+          <div className="ml-2 h-20 w-20 rounded-md bg-gray-200 text-sm font-medium">
+            <div className="m-2 h-10 w-10 rounded-md bg-gray-400 text-sm font-medium">
+            </div>
+          </div>
+        </div>
+      </div>
+  );
+}
 
 export function CardsSkeleton() {
   return (
-    <>
-      <CardSkeleton />
+      <>
+        <CardSkeleton />
       <CardSkeleton />
       <CardSkeleton />
       <CardSkeleton />
